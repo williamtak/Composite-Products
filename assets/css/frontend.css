@@ -447,6 +447,9 @@ body.woocommerce-no-js .wooco-wrap + form.cart {
 }
 
 /* List */
+.wooco-components-hide-selection-button .wooco_component_product_selection_list_item .wooco_component_product_selection_list_item_choose {
+  display: none;
+}
 .wooco_component_layout_list .wooco_component_product_link {
   display: none !important;
 }
