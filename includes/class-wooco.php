@@ -901,6 +901,7 @@ if ( ! class_exists( 'WPCleverWooco' ) && class_exists( 'WC_Product' ) ) {
                         $option_none_required     = self::get_setting( 'option_none_required', 'no' );
                         $checkbox                 = self::get_setting( 'checkbox', 'no' );
                         $checked                  = self::get_setting( 'checked', 'yes' );
+                        $select_all_components    = self::get_setting( 'select_all_components', 'no' );
                         $change_image             = self::get_setting( 'change_image', 'yes' );
                         $change_price             = self::get_setting( 'change_price', 'yes' );
                         $change_price_custom      = self::get_setting( 'change_price_custom', '.summary > .price' );
@@ -1066,6 +1067,16 @@ if ( ! class_exists( 'WPCleverWooco' ) && class_exists( 'WC_Product' ) ) {
                                                 <option value="no" <?php selected( $checked, 'no' ); ?>><?php esc_html_e( 'No', 'wpc-composite-products' ); ?></option>
                                             </select> </label>
                                         <span class="description"><?php esc_html_e( 'Mark checkboxes as checked by default.', 'wpc-composite-products' ); ?></span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th><?php esc_html_e( 'Select component products by default', 'wpc-composite-products' ); ?></th>
+                                    <td>
+                                        <label> <select name="wooco_settings[select_all_components]">
+                                                <option value="yes" <?php selected( $select_all_components, 'yes' ); ?>><?php esc_html_e( 'Yes', 'wpc-composite-products' ); ?></option>
+                                                <option value="no" <?php selected( $select_all_components, 'no' ); ?>><?php esc_html_e( 'No', 'wpc-composite-products' ); ?></option>
+                                            </select> </label>
+                                        <span class="description"><?php esc_html_e( 'Automatically preselect every product inside each component when the composite loads.', 'wpc-composite-products' ); ?></span>
                                     </td>
                                 </tr>
                                 <tr class="wooco_settings_checkbox_hide wooco_settings_checkbox_show_no">
@@ -3015,6 +3026,7 @@ if ( ! class_exists( 'WPCleverWooco' ) && class_exists( 'WC_Product' ) ) {
                     $plus_minus           = self::get_setting( 'show_plus_minus', 'yes' ) === 'yes';
                     $checked              = self::get_setting( 'checked', 'yes' ) === 'yes';
                     $checkbox             = self::get_setting( 'checkbox', 'no' ) === 'yes';
+                    $select_all_components = self::get_setting( 'select_all_components', 'no' ) === 'yes';
                     $product_link         = self::get_setting( 'product_link', 'no' );
                     $option_none_required = self::get_setting( 'option_none_required', 'no' ) === 'yes';
                     $total_limit          = get_post_meta( $product_id, 'wooco_total_limits', true ) === 'on';
@@ -3084,6 +3096,15 @@ if ( ! class_exists( 'WPCleverWooco' ) && class_exists( 'WC_Product' ) ) {
                         $component_order      = (string) ( $component['order'] ?? 'default' );
                         $component_price      = isset( $component['price'] ) ? self::format_price( $component['price'] ) : '';
                         $component_products   = self::get_products( $component_type, $component_val, $component_orderby, $component_order, $component_exclude, $component_default, $component_qty, $component_price, $component_custom_qty );
+
+                        if ( $select_all_components && ! $component_multiple && ( empty( $component['default'] ) || ( (int) $component['default'] <= 0 ) ) && ! empty( $component_products ) ) {
+                            $first_product = reset( $component_products );
+
+                            if ( is_array( $first_product ) && isset( $first_product['id'] ) ) {
+                                $component_default    = absint( $first_product['id'] );
+                                $component['default'] = $component_default;
+                            }
+                        }
                         $component_selector   = isset( $component['selector'] ) && $component['selector'] !== 'default' ? $component['selector'] : $selector;
 
                         // force set 'grid_3' if enable multiple
@@ -3197,7 +3218,7 @@ if ( ! class_exists( 'WPCleverWooco' ) && class_exists( 'WC_Product' ) ) {
                             echo '<div class="wooco_component_product" ' . self::data_attributes( $component_product_attrs ) . '>';
 
                             if ( $checkbox && $component_dropdown ) {
-                                $components_checked = $checked || $component_required;
+                                $components_checked = $checked || $component_required || $select_all_components;
 
                                 if ( ! empty( $edit_ids ) ) {
                                     foreach ( $edit_ids as $edit_id ) {
@@ -3232,7 +3253,13 @@ if ( ! class_exists( 'WPCleverWooco' ) && class_exists( 'WC_Product' ) ) {
 
                                         foreach ( $component_products as $component_product ) {
                                             if ( $component_product_obj = wc_get_product( $component_product['id'] ) ) {
-                                                $item_selected = apply_filters( 'wooco_component_product_selected', isset( $component['default'] ) && ( $component['default'] == $component_product['id'] ), $component_product, $component );
+                                                $base_selected = isset( $component['default'] ) && ( $component['default'] == $component_product['id'] );
+
+                                                if ( $select_all_components && $component_multiple ) {
+                                                    $base_selected = true;
+                                                }
+
+                                                $item_selected = apply_filters( 'wooco_component_product_selected', $base_selected, $component_product, $component );
 
                                                 if ( ! empty( $edit_ids ) ) {
                                                     foreach ( $edit_ids as $edit_id ) {
@@ -3326,7 +3353,13 @@ if ( ! class_exists( 'WPCleverWooco' ) && class_exists( 'WC_Product' ) ) {
 
                                         foreach ( $component_products as $component_product ) {
                                             if ( $component_product_obj = wc_get_product( $component_product['id'] ) ) {
-                                                $item_selected = apply_filters( 'wooco_component_product_selected', isset( $component['default'] ) && ( $component['default'] == $component_product['id'] ), $component_product, $component );
+                                                $base_selected = isset( $component['default'] ) && ( $component['default'] == $component_product['id'] );
+
+                                                if ( $select_all_components && $component_multiple ) {
+                                                    $base_selected = true;
+                                                }
+
+                                                $item_selected = apply_filters( 'wooco_component_product_selected', $base_selected, $component_product, $component );
 
                                                 if ( ! empty( $edit_ids ) ) {
                                                     foreach ( $edit_ids as $edit_id ) {
@@ -3426,7 +3459,13 @@ if ( ! class_exists( 'WPCleverWooco' ) && class_exists( 'WC_Product' ) ) {
                                         }
 
                                         foreach ( $component_products as $component_product ) {
-                                            $item_selected = apply_filters( 'wooco_component_product_selected', isset( $component['default'] ) && ( $component['default'] == $component_product['id'] ), $component_product, $component );
+                                            $base_selected = isset( $component['default'] ) && ( $component['default'] == $component_product['id'] );
+
+                                            if ( $select_all_components && $component_multiple ) {
+                                                $base_selected = true;
+                                            }
+
+                                            $item_selected = apply_filters( 'wooco_component_product_selected', $base_selected, $component_product, $component );
 
                                             if ( ! empty( $edit_ids ) ) {
                                                 foreach ( $edit_ids as $edit_id ) {
