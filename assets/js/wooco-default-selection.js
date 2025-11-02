@@ -5,6 +5,25 @@
         return;
     }
 
+    var settings = window.CompositeProductsDefaultSelection || {};
+    var selectAll = settings.selectAllComponents;
+
+    if (typeof selectAll === 'string') {
+        var normalized = selectAll.toLowerCase();
+
+        if (normalized === '1' || normalized === 'true') {
+            selectAll = true;
+        } else if (normalized === '0' || normalized === 'false') {
+            selectAll = false;
+        }
+    }
+
+    selectAll = Boolean(selectAll);
+
+    if (!selectAll) {
+        return;
+    }
+
     var SELECTOR_ITEM = '.wooco_component_product_selection_item';
     var SELECTOR_PLACEHOLDER = '.wooco_component_product_selection_list_item_choose';
 
