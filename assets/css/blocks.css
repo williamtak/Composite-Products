@@ -1,0 +1,11 @@
+.wc-block-cart-items__row.wooco-component .wc-block-cart-item__remove-link {
+  display: none !important;
+}
+.wc-block-cart-items__row.wooco-component .wc-block-cart-item__quantity {
+  pointer-events: none !important;
+}
+.wc-block-cart-items__row.wooco-component.wooco-hide-component {
+  display: none !important;
+}
+
+/*# sourceMappingURL=blocks.css.map */
